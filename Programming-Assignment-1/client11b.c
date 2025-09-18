@@ -1,13 +1,13 @@
 /*
- * client11b.c - Interactive UDP Client for Lab 1.1
- * Prompts user for input, sends to server, measures round trip time
- * Follows the Lab11-RFC protocol specification
- */
+** client11b.c -- interactive UDP client for Lab 1.1
+** Based on talker.c from Beej's guide
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -16,23 +16,13 @@
 #include <sys/time.h>
 
 #define SERVERPORT "10010"
-#define MAXBUFLEN 1038
+#define MAXBUFLEN 1100
 
-// Protocol message structure
-#pragma pack(1)
-typedef struct {
-    uint16_t length;      // Total message length in network byte order
-    uint32_t seq_num;     // Sequence number in network byte order
-    uint64_t timestamp;   // Timestamp in network byte order
-    char message[1024];   // Variable length string
-} protocol_msg_t;
-#pragma pack()
-
-// Function to get current time in milliseconds since epoch
-uint64_t get_timestamp_ms() {
+// simple function to get current time in milliseconds
+long long get_time_ms() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (uint64_t)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
+    return (long long)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }
 
 int main(int argc, char *argv[])
@@ -41,19 +31,19 @@ int main(int argc, char *argv[])
     struct addrinfo hints, *servinfo, *p;
     int rv;
     int numbytes;
-    char buf[MAXBUFLEN];
-    char input[1024];
-    protocol_msg_t msg;
-    protocol_msg_t recv_msg;
-    uint64_t send_time, recv_time;
-    uint32_t seq_num = 1;
+    char input[1000];
+    char send_buf[MAXBUFLEN];
+    char recv_buf[MAXBUFLEN];
+    unsigned short msg_len;
+    unsigned int seq_num = 1;
+    long long timestamp;
+    long long send_time, recv_time;
 
     if (argc != 2) {
-        fprintf(stderr, "usage: %s hostname\n", argv[1]);
+        fprintf(stderr,"usage: client11b hostname\n");
         exit(1);
     }
 
-    // Set up address structure
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
@@ -63,9 +53,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Create socket
+    // loop through all the results and make a socket
     for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
             perror("client: socket");
             continue;
         }
@@ -77,63 +68,62 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    // Main client loop
+    // main client loop
     while(1) {
-        printf("Enter a string to send (or 'quit' to exit): ");
-        fflush(stdout);
-        
+        printf("Enter string to send (or 'quit' to exit): ");
         if (fgets(input, sizeof(input), stdin) == NULL) {
             break;
         }
         
-        // Remove newline character
+        // remove newline
         input[strcspn(input, "\n")] = 0;
         
         if (strcmp(input, "quit") == 0) {
             break;
         }
 
-        // Prepare protocol message
-        memset(&msg, 0, sizeof(msg));
-        strncpy(msg.message, input, sizeof(msg.message) - 1);
-        msg.message[sizeof(msg.message) - 1] = '\0';
+        // build the message according to protocol
+        // [length:2][seq:4][timestamp:8][string:variable]
         
-        uint16_t msg_len = strlen(msg.message);
-        uint16_t total_len = 2 + 4 + 8 + msg_len;
+        int string_len = strlen(input);
+        int total_len = 2 + 4 + 8 + string_len;
         
-        msg.length = htons(total_len);
-        msg.seq_num = htonl(seq_num);
-        send_time = get_timestamp_ms();
-        msg.timestamp = htobe64(send_time);  // Convert to big-endian (network order)
+        // convert to network order for packing
+        unsigned short net_msg_len = htons(total_len);
+        unsigned int net_seq_num = htonl(seq_num);
+        long long net_timestamp = get_time_ms();
+        
+        // pack the message
+        memcpy(send_buf, &net_msg_len, 2);
+        memcpy(send_buf + 2, &net_seq_num, 4);
+        memcpy(send_buf + 6, &net_timestamp, 8);
+        memcpy(send_buf + 14, input, string_len);
 
-        // Send the message
-        if ((numbytes = sendto(sockfd, &msg, total_len, 0,
-                p->ai_addr, p->ai_addrlen)) == -1) {
-            perror("client: sendto");
+        send_time = get_time_ms();
+
+        // send it
+        if ((numbytes = sendto(sockfd, send_buf, total_len, 0,
+                 p->ai_addr, p->ai_addrlen)) == -1) {
+            perror("sendto");
             continue;
         }
 
-        printf("client: sent %d bytes to %s\n", numbytes, argv[1]);
+        printf("sent %d bytes\n", numbytes);
 
-        // Receive the echo
-        if ((numbytes = recvfrom(sockfd, &recv_msg, MAXBUFLEN, 0, NULL, NULL)) == -1) {
-            perror("client: recvfrom");
+        // receive the echo
+        if ((numbytes = recvfrom(sockfd, recv_buf, MAXBUFLEN, 0, NULL, NULL)) == -1) {
+            perror("recvfrom");
             continue;
         }
 
-        recv_time = get_timestamp_ms();
+        recv_time = get_time_ms();
 
-        // Extract and display the response
-        uint16_t recv_len = ntohs(recv_msg.length);
-        uint32_t recv_seq = ntohl(recv_msg.seq_num);
-        uint64_t recv_timestamp = be64toh(recv_msg.timestamp);
-
-        printf("client: received echo: '%s'\n", recv_msg.message);
-        printf("client: sequence number: %u\n", recv_seq);
-        printf("client: round trip time: %lu ms\n", recv_time - send_time);
+        // extract the string part from the echo
+        printf("received echo: %.*s\n", numbytes - 14, recv_buf + 14);
+        printf("round trip time: %lld ms\n", recv_time - send_time);
         printf("---\n");
 
-        seq_num++;
+        seq_num++;  // increment for next message
     }
 
     freeaddrinfo(servinfo);
