@@ -1,8 +1,3 @@
-/*
-** client11b.c -- interactive UDP client for Lab 1.1
-** Based on talker.c from Beej's guide
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -18,7 +13,6 @@
 #define SERVERPORT "10010"
 #define MAXBUFLEN 1100
 
-// simple function to get current time in milliseconds
 long long get_time_ms() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -75,25 +69,19 @@ int main(int argc, char *argv[])
             break;
         }
         
-        // remove newline
         input[strcspn(input, "\n")] = 0;
         
         if (strcmp(input, "quit") == 0) {
             break;
         }
-
-        // build the message according to protocol
-        // [length:2][seq:4][timestamp:8][string:variable]
         
         int string_len = strlen(input);
         int total_len = 2 + 4 + 8 + string_len;
         
-        // convert to network order for packing
         unsigned short net_msg_len = htons(total_len);
         unsigned int net_seq_num = htonl(seq_num);
         long long net_timestamp = get_time_ms();
         
-        // pack the message
         memcpy(send_buf, &net_msg_len, 2);
         memcpy(send_buf + 2, &net_seq_num, 4);
         memcpy(send_buf + 6, &net_timestamp, 8);
@@ -101,7 +89,6 @@ int main(int argc, char *argv[])
 
         send_time = get_time_ms();
 
-        // send it
         if ((numbytes = sendto(sockfd, send_buf, total_len, 0,
                  p->ai_addr, p->ai_addrlen)) == -1) {
             perror("sendto");
@@ -110,7 +97,6 @@ int main(int argc, char *argv[])
 
         printf("sent %d bytes\n", numbytes);
 
-        // receive the echo
         if ((numbytes = recvfrom(sockfd, recv_buf, MAXBUFLEN, 0, NULL, NULL)) == -1) {
             perror("recvfrom");
             continue;
@@ -118,12 +104,11 @@ int main(int argc, char *argv[])
 
         recv_time = get_time_ms();
 
-        // extract the string part from the echo
         printf("received echo: %.*s\n", numbytes - 14, recv_buf + 14);
         printf("round trip time: %lld ms\n", recv_time - send_time);
         printf("---\n");
 
-        seq_num++;  // increment for next message
+        seq_num++;  
     }
 
     freeaddrinfo(servinfo);

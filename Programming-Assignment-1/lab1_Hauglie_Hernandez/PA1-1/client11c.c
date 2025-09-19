@@ -15,7 +15,6 @@
 #define MAXBUFLEN 1100
 #define MAX_NUMS 10000
 
-// get time (uses microseconds for better precision)
 long long get_time_ms() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -33,11 +32,10 @@ int main(int argc, char *argv[])
     char num_str[20];
     pid_t child_pid;
     
-    // statistics
     int received[MAX_NUMS + 1];
     long long send_times[MAX_NUMS + 1];
     int total_received = 0;
-    long long min_rtt = 999999; // default val
+    long long min_rtt = 999999; 
     long long max_rtt = 0;
     long long total_rtt = 0;
     int valid_rtt_count = 0;
@@ -71,29 +69,23 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    // initialize arrays
     memset(received, 0, sizeof(received));
     memset(send_times, 0, sizeof(send_times));
 
-    // fork to create two processes
     child_pid = fork();
     
     if (child_pid == 0) {
-        // child process - sender
         printf("Sender: starting to send numbers 1 to %d\n", MAX_NUMS);
         
         for (int i = 1; i <= MAX_NUMS; i++) {
-            // build message according to protocol
             sprintf(num_str, "%d", i);
             int string_len = strlen(num_str);
             int total_len = 2 + 4 + 8 + string_len;
             
-            // convert to network order
             unsigned short net_msg_len = htons(total_len);
             unsigned int net_seq_num = htonl(i);
             long long net_timestamp = get_time_ms();
             
-            // pack the message
             memcpy(send_buf, &net_msg_len, 2);
             memcpy(send_buf + 2, &net_seq_num, 4);
             memcpy(send_buf + 6, &net_timestamp, 8);
@@ -101,24 +93,22 @@ int main(int argc, char *argv[])
 
             send_times[i] = net_timestamp;
 
-            // send it
             if (sendto(sockfd, send_buf, total_len, 0,
                      p->ai_addr, p->ai_addrlen) == -1) {
                 perror("sendto");
             }
             
-            usleep(1000);  // small delay
+            usleep(1000);  
         }
         
         printf("Sender: finished sending all numbers\n");
         exit(0);
         
     } else {
-        // parent process - receiver
         printf("Receiver: waiting for echoes\n");
         
         struct timeval tv;
-        tv.tv_sec = 3;  // 3 second timeout
+        tv.tv_sec = 3; 
         tv.tv_usec = 0;
         setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         
@@ -133,7 +123,7 @@ int main(int argc, char *argv[])
                 continue;
             }
             
-            timeouts = 0;  // reset timeout counter
+            timeouts = 0;  
             long long recv_time = get_time_ms();
             
             // extract number and original timestamp from the message
@@ -145,16 +135,14 @@ int main(int argc, char *argv[])
                 received[num] = 1;
                 total_received++;
                 
-                // calculate round trip time
                 long long rtt = recv_time - orig_timestamp;
                 
-                // debug first few packets
                 if (total_received <= 3) {
                     printf("Debug packet %d: recv_time=%lld, orig_timestamp=%lld, rtt=%lld\n", 
                            num, recv_time, orig_timestamp, rtt);
                 }
                 
-                // sanity check - RTT should be reasonable (less than 1 second for local)
+                // RTT should be reasonable (less than 1 second for local)
                 if (rtt > 0 && rtt < 1000) {
                     if (valid_rtt_count == 0 || rtt < min_rtt) min_rtt = rtt;
                     if (rtt > max_rtt) max_rtt = rtt;
@@ -168,9 +156,8 @@ int main(int argc, char *argv[])
             }
         }
         
-        wait(NULL);  // wait for child to finish
+        wait(NULL); 
         
-        // print statistics
         printf("\n--- STATISTICS ---\n");
         printf("Total sent: %d\n", MAX_NUMS);
         printf("Total received: %d\n", total_received);

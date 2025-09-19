@@ -1,9 +1,3 @@
-/*
- * server11.c - UDP Echo Server for Lab 1.1
- * Listens on port 10010 and echoes back received messages
- * Follows the Lab11-RFC protocol specification
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,15 +9,14 @@
 #include <netdb.h>
 
 #define PORT "10010"
-#define MAXBUFLEN 1038  // 2 + 4 + 8 + 1024 max message size
+#define MAXBUFLEN 1038  // max message size
 
-// Protocol message structure
 #pragma pack(1)
 typedef struct {
-    uint16_t length;      // Total message length in network byte order
-    uint32_t seq_num;     // Sequence number in network byte order
-    uint64_t timestamp;   // Timestamp in network byte order
-    char message[1024];   // Variable length string (up to 1024 bytes)
+    uint16_t length;     
+    uint32_t seq_num;    
+    uint64_t timestamp;  
+    char message[1024];  
 } protocol_msg_t;
 #pragma pack()
 
@@ -36,19 +29,17 @@ int main(void)
     int rv;
     char buf[MAXBUFLEN];
     int numbytes;
-
-    // Set up address structure
+=
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;      // Use IPv4
-    hints.ai_socktype = SOCK_DGRAM; // UDP socket
-    hints.ai_flags = AI_PASSIVE;    // Use my IP
+    hints.ai_family = AF_INET;      
+    hints.ai_socktype = SOCK_DGRAM; 
+    hints.ai_flags = AI_PASSIVE;    
 
     if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
 
-    // Create and bind socket
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             perror("server: socket");
@@ -76,7 +67,6 @@ int main(void)
     while(1) {
         addr_len = sizeof their_addr;
         
-        // Receive message from client
         if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
                 (struct sockaddr *)&their_addr, &addr_len)) == -1) {
             perror("recvfrom");
@@ -85,7 +75,6 @@ int main(void)
 
         printf("server: received %d bytes from client\n", numbytes);
 
-        // Echo the message back to the sender
         if (sendto(sockfd, buf, numbytes, 0,
                 (struct sockaddr *)&their_addr, addr_len) == -1) {
             perror("sendto");
