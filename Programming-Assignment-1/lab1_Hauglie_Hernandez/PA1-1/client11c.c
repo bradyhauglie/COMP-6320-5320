@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
                            num, recv_time, orig_timestamp, rtt);
                 }
                 
-                // RTT should be reasonable (less than 1 second for local)
+                // RTT should be less than 1 second for local
                 if (rtt > 0 && rtt < 1000) {
                     if (valid_rtt_count == 0 || rtt < min_rtt) min_rtt = rtt;
                     if (rtt > max_rtt) max_rtt = rtt;
@@ -150,10 +150,7 @@ int main(int argc, char *argv[])
                     valid_rtt_count++;
                 }
             }
-            
-            if (total_received % 1000 == 0) {
-                printf("received %d echoes so far\n", total_received);
-            }
+
         }
         
         wait(NULL); 
