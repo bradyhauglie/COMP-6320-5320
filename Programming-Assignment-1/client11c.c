@@ -178,8 +178,8 @@ int main(int argc, char *argv[])
         
         if (valid_rtt_count > 0) {
             printf("Valid RTT measurements: %d\n", valid_rtt_count);
-            printf("Smallest RTT: %lld ms\n", (double)min_rtt / 1000.0);
-            printf("Largest RTT: %lld ms\n", (double)max_rtt / 1000.0);
+            printf("Smallest RTT: %.2f ms\n", (double)min_rtt / 1000.0);
+            printf("Largest RTT: %.2f ms\n", (double)max_rtt / 1000.0);
             printf("Average RTT: %.2f ms\n", (double)total_rtt / valid_rtt_count / 1000.0);
         } else {
             printf("No valid RTT measurements collected\n");
