@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
     char response[14];
     
     char op = argv[1][0];
-    uint32_t a = atoi(argv[2]);
-    uint32_t b = atoi(argv[3]);
+    int a = atoi(argv[2]);
+    int b = atoi(argv[3]);
     
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     
@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
     connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
     
     request[0] = op;
-    *(uint32_t*)(request + 1) = htonl(a);
-    *(uint32_t*)(request + 5) = htonl(b);
+    *(int*)(request + 1) = htonl(a);
+    *(int*)(request + 5) = htonl(b);
     
     send(sockfd, request, 9, 0);
     
@@ -43,9 +43,9 @@ int main(int argc, char *argv[]) {
     
     // Parse response
     char resp_op = response[0];
-    uint32_t resp_a = ntohl(*(uint32_t*)(response + 1));
-    uint32_t resp_b = ntohl(*(uint32_t*)(response + 5));
-    uint32_t result = ntohl(*(uint32_t*)(response + 9));
+    int resp_a = ntohl(*(int*)(response + 1));
+    int resp_b = ntohl(*(int*)(response + 5));
+    int result = ntohl(*(int*)(response + 9));
     uint8_t valid = response[13];
     
     printf("Operation: %c\n", resp_op);
