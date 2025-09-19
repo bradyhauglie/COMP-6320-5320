@@ -16,18 +16,14 @@ int main() {
     char request[9];
     char response[14];
     
-    // Create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     
-    // Setup server address
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
     
-    // Bind
     bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
     
-    // Listen
     listen(sockfd, BACKLOG);
     printf("Server listening on port %d\n", PORT);
     
@@ -35,7 +31,6 @@ int main() {
         addr_len = sizeof(client_addr);
         new_fd = accept(sockfd, (struct sockaddr*)&client_addr, &addr_len);
         
-        // Read request (9 bytes)
         recv(new_fd, request, 9, 0);
         
         // Parse request
@@ -67,14 +62,12 @@ int main() {
                 break;
         }
         
-        // Build response (14 bytes)
         response[0] = op;
         *(uint32_t*)(response + 1) = htonl(a);
         *(uint32_t*)(response + 5) = htonl(b);
         *(uint32_t*)(response + 9) = htonl(result);
         response[13] = valid;
         
-        // Send response
         send(new_fd, response, 14, 0);
         close(new_fd);
     }
