@@ -16,7 +16,7 @@
 long long get_time_ms() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (long long)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
+    return (long long)(tv.tv_sec * 1000000 + tv.tv_usec);
 }
 
 int main(int argc, char *argv[])
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
         recv_time = get_time_ms();
 
         printf("received echo: %.*s\n", numbytes - 14, recv_buf + 14);
-        printf("round trip time: %lld ms\n", recv_time - send_time);
+        printf("round trip time: %.2f ms\n", (double)recv_time / 1000.0 - (double)send_time / 1000.0);
         printf("---\n");
 
         seq_num++;  
