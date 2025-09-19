@@ -1,8 +1,3 @@
-/*
-** client11c.c -- multi-process UDP client for Lab 1.1
-** Based on talker.c from Beej's guide
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,7 +15,7 @@
 #define MAXBUFLEN 1100
 #define MAX_NUMS 10000
 
-// simple function to get current time in milliseconds
+// get time (uses microseconds for better precision)
 long long get_time_ms() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -38,11 +33,11 @@ int main(int argc, char *argv[])
     char num_str[20];
     pid_t child_pid;
     
-    // for statistics
+    // statistics
     int received[MAX_NUMS + 1];
     long long send_times[MAX_NUMS + 1];
     int total_received = 0;
-    long long min_rtt = 999999;
+    long long min_rtt = 999999; // default val
     long long max_rtt = 0;
     long long total_rtt = 0;
     int valid_rtt_count = 0;
@@ -93,7 +88,7 @@ int main(int argc, char *argv[])
             int string_len = strlen(num_str);
             int total_len = 2 + 4 + 8 + string_len;
             
-            // convert to network order for packing
+            // convert to network order
             unsigned short net_msg_len = htons(total_len);
             unsigned int net_seq_num = htonl(i);
             long long net_timestamp = get_time_ms();
@@ -183,22 +178,13 @@ int main(int argc, char *argv[])
         
         if (valid_rtt_count > 0) {
             printf("Valid RTT measurements: %d\n", valid_rtt_count);
-            printf("Smallest RTT: %lld ms\n", min_rtt);
-            printf("Largest RTT: %lld ms\n", max_rtt);
+            printf("Smallest RTT: %lld ms\n", min_rtt / 1000);
+            printf("Largest RTT: %lld ms\n", max_rtt / 1000);
             printf("Average RTT: %.2f ms\n", (double)total_rtt / valid_rtt_count / 1000.0);
         } else {
             printf("No valid RTT measurements collected\n");
         }
         
-        // show some missing numbers
-        printf("Some missing echoes: ");
-        int shown = 0;
-        for (int i = 1; i <= MAX_NUMS && shown < 10; i++) {
-            if (received[i] == 0) {
-                printf("%d ", i);
-                shown++;
-            }
-        }
         printf("\n");
     }
 
