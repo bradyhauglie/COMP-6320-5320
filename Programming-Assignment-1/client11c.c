@@ -140,15 +140,17 @@ int main(int argc, char *argv[])
             timeouts = 0;  // reset timeout counter
             long long recv_time = get_time_ms();
             
-            // extract number from the message
+            // extract number and original timestamp from the message
             int num = atoi(recv_buf + 14);
+            long long orig_timestamp;
+            memcpy(&orig_timestamp, recv_buf + 6, 8);  // get timestamp from message
             
             if (num >= 1 && num <= MAX_NUMS && received[num] == 0) {
                 received[num] = 1;
                 total_received++;
                 
-                // calculate round trip time
-                long long rtt = recv_time - send_times[num];
+                // calculate round trip time using timestamp from echoed message
+                long long rtt = recv_time - orig_timestamp;
                 if (rtt < min_rtt) min_rtt = rtt;
                 if (rtt > max_rtt) max_rtt = rtt;
                 total_rtt += rtt;
