@@ -157,14 +157,6 @@ int main(int argc, char *argv[])
         }
         
         wait(NULL); 
-
-        // Temporary: simulate missing last 4 packets for testing
-        for (int i = MAX_NUMS - 3; i <= MAX_NUMS; i++) {
-            if (received[i] == 1) {
-                received[i] = 0;
-                total_received--;
-            }
-        }
         
         printf("\n--- STATISTICS ---\n");
         printf("Total sent: %d\n", MAX_NUMS);
