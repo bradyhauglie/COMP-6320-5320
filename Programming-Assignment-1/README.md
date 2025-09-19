@@ -38,6 +38,6 @@ kill %[Job ID of running process]
 CTRL+z
 ```
 bg [Job ID of server12]
-./client12 localhost [Operator] [Operand] [Operand]
+./client12 [Operator] [Operand] [Operand]
 ```
 Server will calculate the operation between the first and second operands and send the result to client.

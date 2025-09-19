@@ -29,7 +29,6 @@ int main(void)
     int rv;
     char buf[MAXBUFLEN];
     int numbytes;
-=
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;      
     hints.ai_socktype = SOCK_DGRAM; 
