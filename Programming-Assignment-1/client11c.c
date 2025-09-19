@@ -24,7 +24,7 @@
 long long get_time_ms() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (long long)(tv.tv_sec * 1000000 + tv.tv_usec / 1000);
+    return (long long)(tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
 int main(int argc, char *argv[])
@@ -45,6 +45,7 @@ int main(int argc, char *argv[])
     long long min_rtt = 999999;
     long long max_rtt = 0;
     long long total_rtt = 0;
+    int valid_rtt_count = 0;
 
     if (argc != 2) {
         fprintf(stderr,"usage: client11c hostname\n");
@@ -127,7 +128,6 @@ int main(int argc, char *argv[])
         setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         
         int timeouts = 0;
-        int valid_rtts = 0;  // counter for valid RTT measurements
         
         while (total_received < MAX_NUMS && timeouts < 5) {
             numbytes = recvfrom(sockfd, recv_buf, MAXBUFLEN, 0, NULL, NULL);
@@ -144,31 +144,27 @@ int main(int argc, char *argv[])
             // extract number and original timestamp from the message
             int num = atoi(recv_buf + 14);
             long long orig_timestamp;
-            memcpy(&orig_timestamp, recv_buf + 6, 8);  // get timestamp from message
-            
-            // debug output for first few packets
-            if (total_received < 5) {
-                printf("DEBUG: packet %d, recv_time=%lld, orig_timestamp=%lld\n", 
-                       num, recv_time, orig_timestamp);
-            }
+            memcpy(&orig_timestamp, recv_buf + 6, 8);
             
             if (num >= 1 && num <= MAX_NUMS && received[num] == 0) {
                 received[num] = 1;
                 total_received++;
                 
-                // calculate round trip time using timestamp from echoed message
+                // calculate round trip time
                 long long rtt = recv_time - orig_timestamp;
                 
-                // check if RTT makes sense (should be positive and reasonable)
-                if (rtt > 0 && rtt < 10000) {  // less than 10 seconds seems reasonable
-                    valid_rtts++;
-                    if (rtt < min_rtt) min_rtt = rtt;
+                // debug first few packets
+                if (total_received <= 3) {
+                    printf("Debug packet %d: recv_time=%lld, orig_timestamp=%lld, rtt=%lld\n", 
+                           num, recv_time, orig_timestamp, rtt);
+                }
+                
+                // sanity check - RTT should be reasonable (less than 1 second for local)
+                if (rtt > 0 && rtt < 1000) {
+                    if (valid_rtt_count == 0 || rtt < min_rtt) min_rtt = rtt;
                     if (rtt > max_rtt) max_rtt = rtt;
                     total_rtt += rtt;
-                } else {
-                    if (total_received < 5) {
-                        printf("DEBUG: invalid RTT %lld for packet %d\n", rtt, num);
-                    }
+                    valid_rtt_count++;
                 }
             }
             
@@ -184,12 +180,14 @@ int main(int argc, char *argv[])
         printf("Total sent: %d\n", MAX_NUMS);
         printf("Total received: %d\n", total_received);
         printf("Missing: %d\n", MAX_NUMS - total_received);
-        printf("Valid RTT measurements: %d\n", valid_rtts);
         
-        if (valid_rtts > 0) {
+        if (valid_rtt_count > 0) {
+            printf("Valid RTT measurements: %d\n", valid_rtt_count);
             printf("Smallest RTT: %lld ms\n", min_rtt);
             printf("Largest RTT: %lld ms\n", max_rtt);
-            printf("Average RTT: %.2f ms\n", (double)total_rtt / valid_rtts / 1000.0);
+            printf("Average RTT: %.2f ms\n", (double)total_rtt / valid_rtt_count / 1000.0);
+        } else {
+            printf("No valid RTT measurements collected\n");
         }
         
         // show some missing numbers
