@@ -35,12 +35,12 @@ int main() {
         
         // Parse request
         char op = request[0];
-        uint32_t a = ntohl(*(uint32_t*)(request + 1));
-        uint32_t b = ntohl(*(uint32_t*)(request + 5));
+        int a = ntohl(*(int*)(request + 1));
+        int b = ntohl(*(int*)(request + 5));
         
         // Calculate result
-        uint32_t result = 0;
-        uint8_t valid = 1;
+        int result = 0;
+        int valid = 1;
         
         switch(op) {
             case '+':
@@ -63,9 +63,9 @@ int main() {
         }
         
         response[0] = op;
-        *(uint32_t*)(response + 1) = htonl(a);
-        *(uint32_t*)(response + 5) = htonl(b);
-        *(uint32_t*)(response + 9) = htonl(result);
+        *(int*)(response + 1) = htonl(a);
+        *(int*)(response + 5) = htonl(b);
+        *(int*)(response + 9) = htonl(result);
         response[13] = valid;
         
         send(new_fd, response, 14, 0);
